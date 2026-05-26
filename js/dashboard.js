@@ -27,6 +27,7 @@ let currentSubscription = null;
 let isPremium = false;
 let currentUni = 'NUST';
 let currentFilter = 'All';
+let selectedProfileImageFile = null;
 
 // Collections mapping based on prompt
 const COLS = {
@@ -39,6 +40,15 @@ const COLS = {
   mockTests: 'mock-tests' // Assuming mock tests collection id is 'mock-tests'
 };
 
+const BUCKETS = {
+  mockJsons: 'mock-jsons',
+  generatedResults: 'generated-results',
+  resultTemplates: 'result-templates',
+  profileImages: 'profile-images',
+  paymentReceipts: 'payment-receipts',
+  pastPapers: 'past-papers'
+};
+
 // --- Initialization ---
 async function init() {
   try {
@@ -47,6 +57,9 @@ async function init() {
     
     // Check Subscription
     await checkSubscription();
+
+    // Load profile preferences
+    loadProfileFromPrefs();
     
     // Load initial data
     loadResources();
@@ -121,7 +134,7 @@ function setupEventListeners() {
       const file = fileInput.files[0];
 
       // Upload receipt
-      const uploadedFile = await storage.createFile('payment-receipts', ID.unique(), file);
+      const uploadedFile = await storage.createFile(BUCKETS.paymentReceipts, ID.unique(), file);
 
       // Create record
       await databases.createDocument(CONFIG.databaseId, COLS.paymentReceipts, ID.unique(), {
@@ -173,6 +186,16 @@ function setupEventListeners() {
       lucide.createIcons();
     }
   });
+
+  // Profile
+  document.getElementById('profile-image-file').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    selectedProfileImageFile = file;
+    document.getElementById('profile-image-preview').src = URL.createObjectURL(file);
+  });
+
+  document.getElementById('profile-form').addEventListener('submit', saveProfile);
 }
 
 // --- Data Fetching ---
@@ -305,12 +328,85 @@ async function openPdfPreview(fileId, premiumOnly) {
   } else {
     lock.style.display = 'none';
     try {
-      const url = storage.getFileView('past-papers', fileId);
+      const url = storage.getFileView(BUCKETS.pastPapers, fileId);
       iframe.src = url.href;
     } catch (e) {
       console.error(e);
       iframe.src = '';
       alert('Could not load PDF');
+    }
+
+    function loadProfileFromPrefs() {
+      const prefs = currentUser?.prefs || {};
+
+      if (prefs.targetUniversity) {
+        currentUni = prefs.targetUniversity;
+        document.getElementById('selected-university-text').textContent = currentUni + ' University';
+        document.querySelectorAll('.uni-tab').forEach(tab => {
+          tab.classList.toggle('active', tab.getAttribute('data-uni') === currentUni);
+        });
+      }
+
+      document.getElementById('profile-target-uni').value = prefs.targetUniversity || 'NUST';
+      document.getElementById('profile-target-test').value = prefs.targetTest || '';
+      document.getElementById('profile-batch').value = prefs.batch || '';
+
+      if (prefs.profileImageFileId) {
+        try {
+          const profileImageUrl = storage.getFileView(BUCKETS.profileImages, prefs.profileImageFileId);
+          document.getElementById('profile-image-preview').src = profileImageUrl.href;
+        } catch (error) {
+          console.error('Failed to load profile image', error);
+        }
+      }
+    }
+
+    async function saveProfile(e) {
+      e.preventDefault();
+      const btn = document.getElementById('save-profile-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader"></i> Saving...';
+      lucide.createIcons();
+
+      try {
+        const targetUniversity = document.getElementById('profile-target-uni').value;
+        const targetTest = document.getElementById('profile-target-test').value.trim();
+        const batch = document.getElementById('profile-batch').value.trim();
+        let profileImageFileId = currentUser?.prefs?.profileImageFileId || '';
+
+        if (selectedProfileImageFile) {
+          const uploadedImage = await storage.createFile(BUCKETS.profileImages, ID.unique(), selectedProfileImageFile);
+          profileImageFileId = uploadedImage.$id;
+        }
+
+        const updatedPrefs = {
+          ...(currentUser?.prefs || {}),
+          targetUniversity,
+          targetTest,
+          batch,
+          profileImageFileId
+        };
+
+        await account.updatePrefs(updatedPrefs);
+        currentUser = await account.get();
+        selectedProfileImageFile = null;
+
+        currentUni = targetUniversity;
+        document.getElementById('selected-university-text').textContent = currentUni + ' University';
+        document.querySelectorAll('.uni-tab').forEach(tab => {
+          tab.classList.toggle('active', tab.getAttribute('data-uni') === currentUni);
+        });
+
+        loadResources();
+        alert('Profile updated successfully!');
+      } catch (error) {
+        console.error(error);
+        alert('Failed to save profile. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="save"></i> Save Profile';
+        lucide.createIcons();
+      }
     }
   }
 }

@@ -33,7 +33,7 @@
 <body>
 
   <!-- Login exact background -->
-  <div id="bg-container" aria-hidden="true">
+  <div id="container" aria-hidden="true">
     <div id="circle-small"></div>
     <div id="circle-medium"></div>
     <div id="circle-large"></div>
@@ -54,7 +54,7 @@
       </div>
       
       <div class="university-selector">
-        <span><i data-lucide="graduation-cap" style="width: 18px; color: #f97316;"></i> <span id="selected-university-text">NUST University</span></span>
+        <span><i data-lucide="graduation-cap" style="width: 18px; color: var(--color-primary);"></i> <span id="selected-university-text">NUST University</span></span>
         <i data-lucide="chevron-down" style="width: 16px; color: #64748b;"></i>
       </div>
       
@@ -62,6 +62,9 @@
         <p class="nav-label">MENU</p>
         <button class="nav-link active" data-target="overview">
           <i data-lucide="home"></i> Overview
+        </button>
+        <button class="nav-link" data-target="profile">
+          <i data-lucide="user-circle"></i> My Profile
         </button>
         <button class="nav-link" data-target="resources">
           <i data-lucide="book-open"></i> Resources
@@ -206,7 +209,7 @@
             <div class="cc-icon"><i data-lucide="layout"></i></div>
             <h4>Physics: Entry Test<br>Preparation</h4>
             <div class="cc-meta">
-              <span><i data-lucide="book-open" style="width: 14px; color: #f97316;"></i> 19 lessons</span>
+              <span><i data-lucide="book-open" style="width: 14px; color: var(--color-primary);"></i> 19 lessons</span>
               <span><i data-lucide="clock" style="width: 14px; color: #22c55e;"></i> 2h 4m</span>
             </div>
           </div>
@@ -215,10 +218,55 @@
             <div class="cc-icon" style="background: #e0e7ff; color: #4f46e5;"><i data-lucide="calculator"></i></div>
             <h4>Mathematics: Advanced<br>Techniques</h4>
             <div class="cc-meta">
-              <span><i data-lucide="book-open" style="width: 14px; color: #f97316;"></i> 24 lessons</span>
+              <span><i data-lucide="book-open" style="width: 14px; color: var(--color-primary);"></i> 24 lessons</span>
               <span><i data-lucide="clock" style="width: 14px; color: #22c55e;"></i> 3h 15m</span>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- VIEW: My Profile -->
+      <section class="view-section" id="view-profile">
+        <div class="section-title-row">
+          <div>
+            <h3>My Profile</h3>
+            <p>Set your profile image and academic targets</p>
+          </div>
+        </div>
+        <div class="profile-card">
+          <div class="profile-image-wrap">
+            <img id="profile-image-preview" src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Profile preview">
+            <label for="profile-image-file" class="profile-upload-label">
+              <i data-lucide="camera"></i>
+              <span>Change Photo</span>
+            </label>
+            <input type="file" id="profile-image-file" accept="image/*">
+          </div>
+          <form id="profile-form" class="profile-form">
+            <div class="form-group">
+              <label>Targeted University</label>
+              <select id="profile-target-uni" class="form-control" required>
+                <option value="NUST">NUST</option>
+                <option value="FAST">FAST</option>
+                <option value="GIKI">GIKI</option>
+                <option value="COMSATS">COMSATS</option>
+                <option value="UET">UET</option>
+                <option value="ITU">ITU</option>
+                <option value="PU">PU</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Target Test</label>
+              <input type="text" id="profile-target-test" class="form-control" placeholder="e.g. NUST NET" required>
+            </div>
+            <div class="form-group">
+              <label>Batch</label>
+              <input type="text" id="profile-batch" class="form-control" placeholder="e.g. 2026 Morning" required>
+            </div>
+            <button type="submit" class="btn-primary" id="save-profile-btn">
+              <i data-lucide="save"></i> Save Profile
+            </button>
+          </form>
         </div>
       </section>
 
