@@ -202,7 +202,7 @@ function setupEventListeners() {
 
 async function loadResources() {
   const container = document.getElementById('resources-grid');
-  container.innerHTML = '<p>Loading resources for ' + currentUni + '...</p>';
+  container.textContent = `Loading resources for ${currentUni}...`;
   
   try {
     const queries = [Query.equal('university', currentUni)];
@@ -215,9 +215,12 @@ async function loadResources() {
     // Update stats
     document.getElementById('stat-resources').textContent = res.total;
 
-    container.innerHTML = '';
+    container.replaceChildren();
     if (res.documents.length === 0) {
-      container.innerHTML = '<p style="color:var(--color-text-muted);">No resources found for this filter.</p>';
+      const emptyText = document.createElement('p');
+      emptyText.style.color = 'var(--color-text-muted)';
+      emptyText.textContent = 'No resources found for this filter.';
+      container.appendChild(emptyText);
       return;
     }
 
@@ -230,12 +233,36 @@ async function loadResources() {
       if(item.resourceType === 'PDF') icon = 'file-text';
       if(item.resourceType === 'Notes') icon = 'book';
 
-      card.innerHTML = `
-        <div class="cc-icon"><i data-lucide="${icon}"></i></div>
-        <h4 style="margin-bottom:8px;">${item.title || 'Untitled Resource'}</h4>
-        <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:16px; flex:1;">${item.description || 'No description available.'}</p>
-        <button class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="window.open('${item.url}', '_blank')">Access Resource</button>
-      `;
+      const iconWrap = document.createElement('div');
+      iconWrap.className = 'cc-icon';
+      iconWrap.innerHTML = `<i data-lucide="${icon}"></i>`;
+
+      const title = document.createElement('h4');
+      title.style.marginBottom = '8px';
+      title.textContent = item.title || 'Untitled Resource';
+
+      const description = document.createElement('p');
+      description.style.fontSize = '0.85rem';
+      description.style.color = 'var(--color-text-muted)';
+      description.style.marginBottom = '16px';
+      description.style.flex = '1';
+      description.textContent = item.description || 'No description available.';
+
+      const accessBtn = document.createElement('button');
+      accessBtn.className = 'btn-primary';
+      accessBtn.style.padding = '8px 16px';
+      accessBtn.style.fontSize = '0.85rem';
+      accessBtn.textContent = 'Access Resource';
+      accessBtn.addEventListener('click', () => {
+        const resourceUrl = typeof item.url === 'string' ? item.url.trim() : '';
+        if (/^https?:\/\//i.test(resourceUrl)) {
+          window.open(resourceUrl, '_blank', 'noopener');
+        } else {
+          alert('Invalid resource URL.');
+        }
+      });
+
+      card.append(iconWrap, title, description, accessBtn);
       container.appendChild(card);
     });
     lucide.createIcons();
