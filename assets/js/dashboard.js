@@ -15,7 +15,7 @@ let unreadNotificationsCount = 0;
 
 // Initialize Appwrite
 async function initAppwrite() {
-  const { Client, Account, Databases, Storage } = await import('https://cdn.jsdelivr.net/npm/appwrite/+esm');
+  const { Client, Account, Databases, Storage, Query } = await import('https://cdn.jsdelivr.net/npm/appwrite/+esm');
   
   client = new Client();
   client.setEndpoint(CONFIG.endpoint).setProject(CONFIG.projectId);
@@ -24,7 +24,8 @@ async function initAppwrite() {
   databases = new Databases(client);
   storage = new Storage(client);
   
-  appwrite = { Client, Account, Databases, Storage };
+  appwrite = { Client, Account, Databases, Storage, Query };
+  window.Query = Query; // Make Query available globally
 }
 
 // Auth Manager
@@ -145,7 +146,7 @@ class ResourceManager {
   }
 
   static displayResources(resources) {
-    const container = document.querySelector('.resources-grid');
+    const container = document.getElementById('resources-container');
     if (!container) return;
 
     container.innerHTML = '';
@@ -188,36 +189,45 @@ class ResourceManager {
   }
 
   static openResource(resource) {
-    const modal = document.getElementById('contentModal');
-    const title = modal.querySelector('.modal-title');
-    const body = modal.querySelector('.modal-body');
+    const modalOverlay = document.getElementById('modal-overlay');
+    const modalContent = document.getElementById('modal-content');
 
-    title.textContent = resource.title;
+    let contentHTML = '';
     
     if (resource.resourceType === 'Video') {
-      body.innerHTML = `
-        <div class="video-container">
-          <iframe width="100%" height="400" src="${resource.url}" frameborder="0" allowfullscreen></iframe>
+      contentHTML = `
+        <div style="text-align: center;">
+          <h3>${resource.title}</h3>
+          <div class="video-container">
+            <iframe width="100%" height="400" src="${resource.url}" frameborder="0" allowfullscreen></iframe>
+          </div>
         </div>
       `;
     } else if (resource.resourceType === 'PDF') {
-      body.innerHTML = `
-        <div class="pdf-container">
-          <embed src="${resource.url}" type="application/pdf" width="100%" height="600">
-          <div class="pdf-actions">
-            <a href="${resource.url}" download class="btn btn-primary">Download PDF</a>
+      contentHTML = `
+        <div style="text-align: center;">
+          <h3>${resource.title}</h3>
+          <div class="pdf-container">
+            <embed src="${resource.url}" type="application/pdf" width="100%" height="600">
+            <div class="pdf-actions" style="margin-top: 1rem;">
+              <a href="${resource.url}" download class="btn btn-primary">Download PDF</a>
+            </div>
           </div>
         </div>
       `;
     } else {
-      body.innerHTML = `
-        <div class="link-container">
-          <p>External Link: <a href="${resource.url}" target="_blank">${resource.url}</a></p>
-          <a href="${resource.url}" target="_blank" class="btn btn-primary">Open Link</a>
+      contentHTML = `
+        <div style="text-align: center;">
+          <h3>${resource.title}</h3>
+          <div class="link-container">
+            <p>External Link: <a href="${resource.url}" target="_blank">${resource.url}</a></p>
+            <a href="${resource.url}" target="_blank" class="btn btn-primary">Open Link</a>
+          </div>
         </div>
       `;
     }
 
+    modalContent.innerHTML = contentHTML;
     openModal();
   }
 
@@ -265,7 +275,7 @@ class MockTestManager {
   }
 
   static displayTests(tests) {
-    const container = document.querySelector('.mock-tests-grid');
+    const container = document.getElementById('mock-tests-container');
     if (!container) return;
 
     container.innerHTML = '';
@@ -301,24 +311,24 @@ class MockTestManager {
   }
 
   static openTestModal(test) {
-    const modal = document.getElementById('contentModal');
-    const title = modal.querySelector('.modal-title');
-    const body = modal.querySelector('.modal-body');
+    const modalContent = document.getElementById('modal-content');
 
-    title.textContent = test.title;
-    body.innerHTML = `
-      <div class="test-details">
-        <h3>Test Details</h3>
-        <p><strong>University:</strong> ${test.university}</p>
-        <p><strong>Type:</strong> ${test.test_type}</p>
-        <p><strong>Duration:</strong> ${test.duration_minutes} minutes</p>
-        <p><strong>Passing Marks:</strong> ${test.passing_marks}</p>
-        <p><strong>Negative Marking:</strong> ${test.negative_marking ? 'Yes' : 'No'}</p>
-        <p>${test.description}</p>
-        <button class="btn btn-primary" onclick="startTest('${test.$id}')">Start Test</button>
+    const testHTML = `
+      <div style="text-align: center;">
+        <h3>${test.title}</h3>
+        <div class="test-details" style="text-align: left; max-width: 500px; margin: 0 auto;">
+          <p><strong>University:</strong> ${test.university}</p>
+          <p><strong>Type:</strong> ${test.test_type}</p>
+          <p><strong>Duration:</strong> ${test.duration_minutes} minutes</p>
+          <p><strong>Passing Marks:</strong> ${test.passing_marks}</p>
+          <p><strong>Negative Marking:</strong> ${test.negative_marking ? 'Yes' : 'No'}</p>
+          <p>${test.description}</p>
+          <button class="btn btn-primary w-full" onclick="startTest('${test.$id}')">Start Test</button>
+        </div>
       </div>
     `;
 
+    modalContent.innerHTML = testHTML;
     openModal();
   }
 }
@@ -336,7 +346,7 @@ class PastPapersManager {
 
   static async displayUniversities() {
     const universities = ['NUST', 'FAST', 'GIKI', 'UET', 'COMSATS', 'MDCAT', 'ECAT'];
-    const container = document.querySelector('.universities-grid');
+    const container = document.getElementById('universities-container');
     if (!container) return;
 
     container.innerHTML = '';
@@ -365,53 +375,30 @@ class PastPapersManager {
         [Query.equal('university', university)]
       );
 
-      const modal = document.getElementById('contentModal');
-      const title = modal.querySelector('.modal-title');
-      const body = modal.querySelector('.modal-body');
-
-      title.textContent = `${university} - Past Papers`;
+      const modalContent = document.getElementById('modal-content');
       
-      body.innerHTML = '';
+      let papersHTML = `<h3>${university} - Past Papers</h3>`;
       papers.documents.forEach(paper => {
         const isLocked = paper.premiumOnly && !currentUser.isPremium;
-        const paperDiv = document.createElement('div');
-        paperDiv.className = `past-paper-item ${isLocked ? 'locked' : ''}`;
         
-        paperDiv.innerHTML = `
-          <h4>${paper.title}</h4>
-          <p><strong>Year:</strong> ${paper.year}</p>
-          <p><strong>Category:</strong> ${paper.category}</p>
-          ${isLocked ? '<span class="lock-icon">🔒 Premium</span>' : ''}
+        papersHTML += `
+          <div class="past-paper-item ${isLocked ? 'locked' : ''}" style="padding: 1rem; margin: 0.5rem 0; border: 1px solid rgba(0,0,0,0.1); border-radius: 0.5rem;">
+            <h4>${paper.title}</h4>
+            <p><strong>Year:</strong> ${paper.year}</p>
+            <p><strong>Category:</strong> ${paper.category}</p>
+            ${isLocked ? '<span class="lock-icon">🔒 Premium</span>' : ''}
+            <button class="btn btn-secondary" onclick="viewPaper('${paper.$id}')">View Paper</button>
+          </div>
         `;
-
-        if (isLocked) {
-          paperDiv.addEventListener('click', () => showPage('premium'));
-        } else {
-          paperDiv.addEventListener('click', () => this.viewPaperPDF(paper));
-        }
-
-        body.appendChild(paperDiv);
       });
 
+      modalContent.innerHTML = papersHTML;
       openModal();
     } catch (error) {
       showToast('Failed to load past papers', 'error');
     }
   }
 
-  static viewPaperPDF(paper) {
-    const modal = document.getElementById('contentModal');
-    const body = modal.querySelector('.modal-body');
-
-    body.innerHTML = `
-      <div class="pdf-viewer">
-        <embed src="data:application/pdf;base64,..." type="application/pdf" width="100%" height="600">
-        <div class="pdf-actions">
-          <button class="btn btn-primary" onclick="downloadPDF('${paper.pdfFileId}')">Download PDF</button>
-        </div>
-      </div>
-    `;
-  }
 }
 
 // Notification Manager
@@ -440,7 +427,7 @@ class NotificationManager {
   }
 
   static displayNotifications(notifications) {
-    const container = document.querySelector('.notifications-list');
+    const container = document.getElementById('notifications-container');
     if (!container) return;
 
     container.innerHTML = '';
@@ -489,7 +476,7 @@ class NotificationManager {
       );
 
       unreadNotificationsCount = unread.total;
-      const badge = document.querySelector('.notif-badge');
+      const badge = document.getElementById('notification-badge');
       if (badge) {
         badge.style.display = unreadNotificationsCount > 0 ? 'block' : 'none';
       }
@@ -638,7 +625,7 @@ class ProfileManager {
   }
 
   static displayProfile() {
-    const container = document.querySelector('.profile-content');
+    const container = document.getElementById('profile-content');
     if (container) {
       container.innerHTML = `
         <div class="profile-card">
@@ -721,33 +708,10 @@ class FeedbackManager {
   }
 
   static displayFeedbackForm() {
-    const container = document.querySelector('.feedback-form-container');
-    if (container) {
-      container.innerHTML = `
-        <form id="feedbackForm" class="feedback-form">
-          <div class="form-group">
-            <label>Category</label>
-            <select id="feedbackCategory" required>
-              <option>Bug Report</option>
-              <option>Feature Request</option>
-              <option>General Feedback</option>
-              <option>Complaint</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Subject</label>
-            <input type="text" id="feedbackSubject" required>
-          </div>
-          <div class="form-group">
-            <label>Message</label>
-            <textarea id="feedbackMessage" rows="5" required></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary">Submit Feedback</button>
-        </form>
-      `;
-
-      document.getElementById('feedbackForm')?.addEventListener('submit', 
-        (e) => this.submitFeedback(e));
+    // The feedback form is already in HTML with id="feedback-form", so we just need to add event listeners
+    const feedbackForm = document.getElementById('feedback-form');
+    if (feedbackForm) {
+      feedbackForm.addEventListener('submit', (e) => this.submitFeedback(e));
     }
   }
 
@@ -755,9 +719,9 @@ class FeedbackManager {
     e.preventDefault();
 
     try {
-      const category = document.getElementById('feedbackCategory').value;
-      const subject = document.getElementById('feedbackSubject').value;
-      const message = document.getElementById('feedbackMessage').value;
+      const category = document.getElementById('feedback-category').value;
+      const subject = document.getElementById('feedback-subject').value;
+      const message = document.getElementById('feedback-message').value;
 
       await databases.createDocument(
         CONFIG.databaseId,
@@ -774,7 +738,7 @@ class FeedbackManager {
       );
 
       showToast('Feedback submitted successfully!', 'success');
-      document.getElementById('feedbackForm').reset();
+      document.getElementById('feedback-form').reset();
       await this.loadFeedbackHistory();
     } catch (error) {
       showToast('Failed to submit feedback', 'error');
@@ -789,7 +753,7 @@ class FeedbackManager {
         [Query.equal('userId', currentUser.$id)]
       );
 
-      const container = document.querySelector('.feedback-history');
+      const container = document.getElementById('feedback-history');
       if (container) {
         container.innerHTML = '';
         feedback.documents.forEach(item => {
@@ -812,7 +776,7 @@ class FeedbackManager {
 
 // UI Helpers
 function showPage(pageName) {
-  document.querySelectorAll('.page').forEach(page => {
+  document.querySelectorAll('.page-section').forEach(page => {
     page.classList.remove('active');
   });
   document.getElementById(`${pageName}-page`)?.classList.add('active');
@@ -857,15 +821,15 @@ function copyToClipboard(text) {
 }
 
 function updateStatsCards(data) {
-  document.querySelector('[data-stat="mock-tests"] .stat-value').textContent = data.mockTests;
-  document.querySelector('[data-stat="past-papers"] .stat-value').textContent = data.pastPapers;
-  document.querySelector('[data-stat="resources"] .stat-value').textContent = data.resources;
-  document.querySelector('[data-stat="premium"] .stat-value').textContent = data.isPremium ? 'Premium' : 'Free';
+  document.getElementById('mock-count').textContent = data.mockTests;
+  document.getElementById('papers-count').textContent = data.pastPapers;
+  document.getElementById('resources-count').textContent = data.resources;
+  document.getElementById('premium-status').textContent = data.isPremium ? 'Premium' : 'Free';
 }
 
 // Event Listeners Setup
 function setupEventListeners() {
-  document.getElementById('hamburgerMenu').addEventListener('click', toggleSidebar);
+  document.getElementById('hamburger-btn').addEventListener('click', toggleSidebar);
   
   document.querySelectorAll('.sidebar-item').forEach(item => {
     item.addEventListener('click', (e) => {
@@ -904,22 +868,22 @@ function setupEventListeners() {
     });
   });
 
-  const notificationBell = document.getElementById('notificationBell');
+  const notificationBell = document.getElementById('notification-btn');
   if (notificationBell) {
     notificationBell.addEventListener('click', () => {
       NotificationManager.loadNotifications();
     });
   }
 
-  const profileImage = document.getElementById('headerProfileImage');
+  const profileImage = document.getElementById('profile-img');
   if (profileImage) {
     profileImage.addEventListener('click', () => {
       ProfileManager.loadProfile();
     });
   }
 
-  document.getElementById('contentModal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'contentModal') {
+  document.getElementById('modal-overlay')?.addEventListener('click', (e) => {
+    if (e.target.id === 'modal-overlay') {
       closeModal();
     }
   });
@@ -939,7 +903,7 @@ async function initDashboard() {
       NotificationManager.updateUnreadCount();
       
       // Update profile image in header
-      const headerImage = document.getElementById('headerProfileImage');
+      const headerImage = document.getElementById('profile-img');
       if (headerImage && currentUser.profileImageId) {
         headerImage.src = storage.getFilePreview('profile-images', currentUser.profileImageId);
       }
