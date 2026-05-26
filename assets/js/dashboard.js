@@ -338,7 +338,7 @@ class MockTestManager {
           <p><strong>Passing Marks:</strong> ${test.passing_marks}</p>
           <p><strong>Negative Marking:</strong> ${test.negative_marking ? 'Yes' : 'No'}</p>
           <p>${test.description}</p>
-          <button class="btn btn-primary w-full" onclick="startTest('${test.$id}')">Start Test</button>
+          <button class="btn btn-primary w-full" onclick="startTest('${escapeHtml(test.$id)}')">Start Test</button>
         </div>
       </div>
     `;
@@ -399,11 +399,11 @@ class PastPapersManager {
         
         papersHTML += `
           <div class="past-paper-item ${isLocked ? 'locked' : ''}" style="padding: 1rem; margin: 0.5rem 0; border: 1px solid rgba(0,0,0,0.1); border-radius: 0.5rem;">
-            <h4>${paper.title}</h4>
+            <h4>${escapeHtml(paper.title)}</h4>
             <p><strong>Year:</strong> ${paper.year}</p>
-            <p><strong>Category:</strong> ${paper.category}</p>
+            <p><strong>Category:</strong> ${escapeHtml(paper.category)}</p>
             ${isLocked ? '<span class="lock-icon">🔒 Premium</span>' : ''}
-            <button class="btn btn-secondary" onclick="viewPaper('${paper.$id}')">View Paper</button>
+            <button class="btn btn-secondary" onclick="viewPaper('${escapeHtml(paper.$id)}')">View Paper</button>
           </div>
         `;
       });
@@ -672,7 +672,7 @@ class ProfileManager {
           <div class="profile-actions">
             <div class="form-group">
               <label>Update Profile Picture</label>
-              <input type="file" id="profileImageInput" accept="image/*" onchange="uploadProfileImage(this.files[0])">
+              <input type="file" id="profileImageInput" accept="image/*" onchange="uploadProfileImage(this.files && this.files[0] ? this.files[0] : null)">
             </div>
           </div>
         </div>
@@ -824,15 +824,53 @@ function closeModal() {
 }
 
 // Global functions for inline event handlers
-function startTest(testId) {
-  MockTestManager.openTestModal({ $id: testId });
+async function startTest(testId) {
+  try {
+    const test = await databases.getDocument(CONFIG.databaseId, 'mock_tests', testId);
+    MockTestManager.openTestModal(test);
+  } catch (error) {
+    showToast('Failed to load test', 'error');
+  }
 }
 
-function viewPaper(paperId) {
-  PastPapersManager.openPaperModal({ $id: paperId });
+async function viewPaper(paperId) {
+  try {
+    const paper = await databases.getDocument(CONFIG.databaseId, 'past_papers', paperId);
+    const modalContent = document.getElementById('modal-content');
+    const isLocked = paper.premiumOnly && !currentUser.isPremium;
+    
+    if (isLocked) {
+      showPage('premium');
+      return;
+    }
+    
+    const pdfUrl = storage.getFileView('past-papers', paper.pdfFileId);
+    modalContent.innerHTML = `
+      <div style="text-align: center;">
+        <h3>${escapeHtml(paper.title)}</h3>
+        <div class="pdf-container">
+          <embed src="${pdfUrl}" type="application/pdf" width="100%" height="600">
+          <div class="pdf-actions" style="margin-top: 1rem;">
+            <a href="${pdfUrl}" download class="btn btn-primary">Download PDF</a>
+          </div>
+        </div>
+      </div>
+    `;
+    openModal();
+  } catch (error) {
+    showToast('Failed to load paper', 'error');
+  }
 }
 
 function uploadProfileImage(file) {
+  if (!file) {
+    showToast('Please select a file', 'error');
+    return;
+  }
+  if (!file.type.startsWith('image/')) {
+    showToast('Please select a valid image file', 'error');
+    return;
+  }
   ProfileManager.uploadProfileImage(file);
 }
 
@@ -863,7 +901,7 @@ function updateStatsCards(data) {
   document.getElementById('mock-count').textContent = data.mockTests;
   document.getElementById('papers-count').textContent = data.pastPapers;
   document.getElementById('resources-count').textContent = data.resources;
-  document.getElementById('premium-status').textContent = data.isPremium ? 'Premium' : 'Free';
+  document.getElementById('premium-badge').textContent = data.isPremium ? 'Premium' : 'Free';
 }
 
 // Event Listeners Setup
