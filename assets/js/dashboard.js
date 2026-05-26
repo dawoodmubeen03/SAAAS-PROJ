@@ -1,3 +1,15 @@
+// Whitelist of valid university names
+const VALID_UNIVERSITIES = {
+  'NUST': 'nust',
+  'FAST': 'fast',
+  'GIKI': 'giki',
+  'UET': 'uet',
+  'COMSATS': 'comsats',
+  'MDCAT': 'mdcat',
+  'ECAT': 'ecat',
+  'ITU': 'itu'
+};
+
 // Appwrite Configuration
 const CONFIG = {
   endpoint: 'https://sgp.cloud.appwrite.io/v1',
@@ -10,12 +22,13 @@ let client;
 let account;
 let databases;
 let storage;
+let ID;
 let currentUser = null;
 let unreadNotificationsCount = 0;
 
 // Initialize Appwrite
 async function initAppwrite() {
-  const { Client, Account, Databases, Storage, Query } = await import('https://cdn.jsdelivr.net/npm/appwrite/+esm');
+  const { Client, Account, Databases, Storage, Query, ID: AppwriteID } = await import('https://cdn.jsdelivr.net/npm/appwrite/+esm');
   
   client = new Client();
   client.setEndpoint(CONFIG.endpoint).setProject(CONFIG.projectId);
@@ -23,9 +36,11 @@ async function initAppwrite() {
   account = new Account(client);
   databases = new Databases(client);
   storage = new Storage(client);
+  ID = AppwriteID;
   
-  appwrite = { Client, Account, Databases, Storage, Query };
+  appwrite = { Client, Account, Databases, Storage, Query, ID };
   window.Query = Query; // Make Query available globally
+  window.ID = ID; // Make ID available globally
 }
 
 // Auth Manager
@@ -168,10 +183,10 @@ class ResourceManager {
       card.innerHTML = `
         ${preview}
         <div class="resource-info">
-          <h3>${resource.title}</h3>
-          <p>${resource.description || 'No description'}</p>
+          <h3>${escapeHtml(resource.title)}</h3>
+          <p>${escapeHtml(resource.description || 'No description')}</p>
           <div class="resource-meta">
-            <span class="university-badge">${resource.university}</span>
+            <span class="university-badge">${escapeHtml(resource.university)}</span>
             ${isLocked ? '<span class="premium-badge">🔒 Premium</span>' : '<span class="free-badge">Free</span>'}
           </div>
         </div>
@@ -197,20 +212,20 @@ class ResourceManager {
     if (resource.resourceType === 'Video') {
       contentHTML = `
         <div style="text-align: center;">
-          <h3>${resource.title}</h3>
+          <h3>${escapeHtml(resource.title)}</h3>
           <div class="video-container">
-            <iframe width="100%" height="400" src="${resource.url}" frameborder="0" allowfullscreen></iframe>
+            <iframe width="100%" height="400" src="${escapeHtml(resource.url)}" frameborder="0" allowfullscreen></iframe>
           </div>
         </div>
       `;
     } else if (resource.resourceType === 'PDF') {
       contentHTML = `
         <div style="text-align: center;">
-          <h3>${resource.title}</h3>
+          <h3>${escapeHtml(resource.title)}</h3>
           <div class="pdf-container">
-            <embed src="${resource.url}" type="application/pdf" width="100%" height="600">
+            <embed src="${escapeHtml(resource.url)}" type="application/pdf" width="100%" height="600">
             <div class="pdf-actions" style="margin-top: 1rem;">
-              <a href="${resource.url}" download class="btn btn-primary">Download PDF</a>
+              <a href="${escapeHtml(resource.url)}" download class="btn btn-primary">Download PDF</a>
             </div>
           </div>
         </div>
@@ -218,10 +233,10 @@ class ResourceManager {
     } else {
       contentHTML = `
         <div style="text-align: center;">
-          <h3>${resource.title}</h3>
+          <h3>${escapeHtml(resource.title)}</h3>
           <div class="link-container">
-            <p>External Link: <a href="${resource.url}" target="_blank">${resource.url}</a></p>
-            <a href="${resource.url}" target="_blank" class="btn btn-primary">Open Link</a>
+            <p>External Link: <a href="${escapeHtml(resource.url)}" target="_blank">${escapeHtml(resource.url)}</a></p>
+            <a href="${escapeHtml(resource.url)}" target="_blank" class="btn btn-primary">Open Link</a>
           </div>
         </div>
       `;
@@ -354,11 +369,12 @@ class PastPapersManager {
     universities.forEach(uni => {
       const card = document.createElement('div');
       card.className = 'university-card';
+      const imageFile = VALID_UNIVERSITIES[uni] || uni.toLowerCase();
       card.innerHTML = `
         <div class="uni-logo">
-          <img src="assets/universities/${uni.toLowerCase()}.png" alt="${uni}" onerror="this.src='https://via.placeholder.com/80'">
+          <img src="assets/universities/${imageFile}.png" alt="${escapeHtml(uni)}" onerror="this.src='https://via.placeholder.com/80'">
         </div>
-        <h3>${uni}</h3>
+        <h3>${escapeHtml(uni)}</h3>
         <p>Click to view past papers</p>
       `;
 
@@ -583,7 +599,7 @@ class PremiumManager {
       // Upload receipt image
       const fileResponse = await storage.createFile(
         'payment-receipts',
-        'unique()',
+        ID.unique(),
         receiptImage
       );
 
@@ -591,7 +607,7 @@ class PremiumManager {
       await databases.createDocument(
         CONFIG.databaseId,
         'payment_requests',
-        'unique()',
+        ID.unique(),
         {
           userId: currentUser.$id,
           fullName,
@@ -675,7 +691,7 @@ class ProfileManager {
     try {
       const fileResponse = await storage.createFile(
         'profile-images',
-        'unique()',
+        ID.unique(),
         file
       );
 
@@ -726,7 +742,7 @@ class FeedbackManager {
       await databases.createDocument(
         CONFIG.databaseId,
         'feedback',
-        'unique()',
+        ID.unique(),
         {
           userId: currentUser.$id,
           category,
@@ -775,11 +791,17 @@ class FeedbackManager {
 }
 
 // UI Helpers
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 function showPage(pageName) {
   document.querySelectorAll('.page-section').forEach(page => {
     page.classList.remove('active');
   });
-  document.getElementById(`${pageName}-page`)?.classList.add('active');
+  document.getElementById(`page-${pageName}`)?.classList.add('active');
   
   // Update sidebar active state
   document.querySelectorAll('.sidebar-item').forEach(item => {
@@ -794,15 +816,32 @@ function toggleSidebar() {
 }
 
 function openModal() {
-  document.getElementById('contentModal').classList.add('active');
+  document.getElementById('modal-overlay').classList.add('active');
 }
 
 function closeModal() {
-  document.getElementById('contentModal').classList.remove('active');
+  document.getElementById('modal-overlay').classList.remove('active');
+}
+
+// Global functions for inline event handlers
+function startTest(testId) {
+  MockTestManager.openTestModal({ $id: testId });
+}
+
+function viewPaper(paperId) {
+  PastPapersManager.openPaperModal({ $id: paperId });
+}
+
+function uploadProfileImage(file) {
+  ProfileManager.uploadProfileImage(file);
+}
+
+function openPaymentForm() {
+  document.getElementById('payment-form').scrollIntoView({ behavior: 'smooth' });
 }
 
 function showToast(message, type = 'info') {
-  const container = document.getElementById('toastContainer');
+  const container = document.getElementById('toast-container');
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   toast.textContent = message;
@@ -834,7 +873,8 @@ function setupEventListeners() {
   document.querySelectorAll('.sidebar-item').forEach(item => {
     item.addEventListener('click', (e) => {
       e.preventDefault();
-      const page = item.dataset.page;
+      const link = item.querySelector('.sidebar-link');
+      const page = link?.dataset.page || item.dataset.page;
       
       switch(page) {
         case 'home':
