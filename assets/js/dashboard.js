@@ -330,20 +330,24 @@ class MockTestManager {
 
     const testHTML = `
       <div style="text-align: center;">
-        <h3>${test.title}</h3>
+        <h3>${escapeHtml(test.title)}</h3>
         <div class="test-details" style="text-align: left; max-width: 500px; margin: 0 auto;">
-          <p><strong>University:</strong> ${test.university}</p>
-          <p><strong>Type:</strong> ${test.test_type}</p>
+          <p><strong>University:</strong> ${escapeHtml(test.university)}</p>
+          <p><strong>Type:</strong> ${escapeHtml(test.test_type)}</p>
           <p><strong>Duration:</strong> ${test.duration_minutes} minutes</p>
           <p><strong>Passing Marks:</strong> ${test.passing_marks}</p>
           <p><strong>Negative Marking:</strong> ${test.negative_marking ? 'Yes' : 'No'}</p>
-          <p>${test.description}</p>
-          <button class="btn btn-primary w-full" onclick="startTest('${escapeHtml(test.$id)}')">Start Test</button>
+          <p>${escapeHtml(test.description)}</p>
+          <button class="btn btn-primary w-full" id="start-test-btn" data-test-id="${test.$id}">Start Test</button>
         </div>
       </div>
     `;
 
     modalContent.innerHTML = testHTML;
+    document.getElementById('start-test-btn').addEventListener('click', () => {
+      showToast('Test started! (Feature coming soon)', 'info');
+      closeModal();
+    });
     openModal();
   }
 }
@@ -403,12 +407,45 @@ class PastPapersManager {
             <p><strong>Year:</strong> ${paper.year}</p>
             <p><strong>Category:</strong> ${escapeHtml(paper.category)}</p>
             ${isLocked ? '<span class="lock-icon">🔒 Premium</span>' : ''}
-            <button class="btn btn-secondary" onclick="viewPaper('${escapeHtml(paper.$id)}')">View Paper</button>
+            <button class="btn btn-secondary view-paper-btn" data-paper-id="${paper.$id}" ${isLocked ? 'disabled' : ''}>View Paper</button>
           </div>
         `;
       });
 
       modalContent.innerHTML = papersHTML;
+      
+      // Attach event listeners to view paper buttons
+      document.querySelectorAll('.view-paper-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const paperId = btn.dataset.paperId;
+          try {
+            const paper = await databases.getDocument(CONFIG.databaseId, 'past_papers', paperId);
+            const isLocked = paper.premiumOnly && !currentUser.isPremium;
+            
+            if (isLocked) {
+              closeModal();
+              showPage('premium');
+              return;
+            }
+            
+            const pdfUrl = storage.getFileView('past-papers', paper.pdfFileId);
+            modalContent.innerHTML = `
+              <div style="text-align: center;">
+                <h3>${escapeHtml(paper.title)}</h3>
+                <div class="pdf-container">
+                  <embed src="${pdfUrl}" type="application/pdf" width="100%" height="600">
+                  <div class="pdf-actions" style="margin-top: 1rem;">
+                    <a href="${pdfUrl}" download class="btn btn-primary">Download PDF</a>
+                  </div>
+                </div>
+              </div>
+            `;
+          } catch (error) {
+            showToast('Failed to load paper', 'error');
+          }
+        });
+      });
+      
       openModal();
     } catch (error) {
       showToast('Failed to load past papers', 'error');
@@ -648,8 +685,8 @@ class ProfileManager {
           <div class="profile-header">
             <img id="profileImage" src="${this.getProfileImageUrl()}" alt="Profile" class="profile-pic">
             <div class="profile-details">
-              <h2>${currentUser.name}</h2>
-              <p>${currentUser.email}</p>
+              <h2>${escapeHtml(currentUser.name)}</h2>
+              <p>${escapeHtml(currentUser.email)}</p>
               <p class="premium-status">${currentUser.isPremium ? '✓ Premium Member' : 'Free Member'}</p>
             </div>
           </div>
@@ -657,26 +694,36 @@ class ProfileManager {
           <div class="profile-info">
             <div class="info-group">
               <label>University Target</label>
-              <p>${currentUser.university || 'Not selected'}</p>
+              <p>${escapeHtml(currentUser.university || 'Not selected')}</p>
             </div>
             <div class="info-group">
               <label>Test Type</label>
-              <p>${currentUser.testType || 'Not selected'}</p>
+              <p>${escapeHtml(currentUser.testType || 'Not selected')}</p>
             </div>
             <div class="info-group">
               <label>Batch</label>
-              <p>${currentUser.batch || 'Not selected'}</p>
+              <p>${escapeHtml(currentUser.batch || 'Not selected')}</p>
             </div>
           </div>
 
           <div class="profile-actions">
             <div class="form-group">
               <label>Update Profile Picture</label>
-              <input type="file" id="profileImageInput" accept="image/*" onchange="uploadProfileImage(this.files && this.files[0] ? this.files[0] : null)">
+              <input type="file" id="profileImageInput" accept="image/*">
             </div>
           </div>
         </div>
       `;
+      
+      // Attach event listener for file input
+      const fileInput = document.getElementById('profileImageInput');
+      if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            this.uploadProfileImage(e.target.files[0]);
+          }
+        });
+      }
     }
   }
 
@@ -800,8 +847,13 @@ function escapeHtml(text) {
 function showPage(pageName) {
   document.querySelectorAll('.page-section').forEach(page => {
     page.classList.remove('active');
+    page.style.display = 'none';
   });
-  document.getElementById(`page-${pageName}`)?.classList.add('active');
+  const activePage = document.getElementById(`page-${pageName}`);
+  if (activePage) {
+    activePage.classList.add('active');
+    activePage.style.display = 'block';
+  }
   
   // Update sidebar active state
   document.querySelectorAll('.sidebar-item').forEach(item => {
@@ -821,45 +873,6 @@ function openModal() {
 
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('active');
-}
-
-// Global functions for inline event handlers
-async function startTest(testId) {
-  try {
-    const test = await databases.getDocument(CONFIG.databaseId, 'mock_tests', testId);
-    MockTestManager.openTestModal(test);
-  } catch (error) {
-    showToast('Failed to load test', 'error');
-  }
-}
-
-async function viewPaper(paperId) {
-  try {
-    const paper = await databases.getDocument(CONFIG.databaseId, 'past_papers', paperId);
-    const modalContent = document.getElementById('modal-content');
-    const isLocked = paper.premiumOnly && !currentUser.isPremium;
-    
-    if (isLocked) {
-      showPage('premium');
-      return;
-    }
-    
-    const pdfUrl = storage.getFileView('past-papers', paper.pdfFileId);
-    modalContent.innerHTML = `
-      <div style="text-align: center;">
-        <h3>${escapeHtml(paper.title)}</h3>
-        <div class="pdf-container">
-          <embed src="${pdfUrl}" type="application/pdf" width="100%" height="600">
-          <div class="pdf-actions" style="margin-top: 1rem;">
-            <a href="${pdfUrl}" download class="btn btn-primary">Download PDF</a>
-          </div>
-        </div>
-      </div>
-    `;
-    openModal();
-  } catch (error) {
-    showToast('Failed to load paper', 'error');
-  }
 }
 
 function uploadProfileImage(file) {

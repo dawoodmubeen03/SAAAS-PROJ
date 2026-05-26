@@ -316,11 +316,11 @@ body {
 }
 
 .page-section {
-  display: none !important;
+  /* visibility managed by JavaScript */
 }
 
 .page-section.active {
-  display: block !important;
+  display: block;
 }
 
 /* ============================================
@@ -809,7 +809,7 @@ body {
 .mt-2 { margin-top: 1rem; }
 .mb-2 { margin-bottom: 1rem; }
 .p-2 { padding: 1rem; }
-.hidden { display: none !important; }
+.hidden { display: none; }
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
 .items-center { align-items: center; }
