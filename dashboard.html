@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FUNGEP - Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/dashboard.css">
+  <style>
+    /* Additional inline styles for quick access icons */
+    .icon { font-size: 1.3rem; }
+  </style>
+</head>
+<body>
+  <!-- Background Container -->
+  <div id="background-container">
+    <div class="glow-circle glow-small"></div>
+    <div class="glow-circle glow-medium"></div>
+    <div class="glow-circle glow-large"></div>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <nav class="sidebar-menu" id="sidebar-menu">
+      <li class="sidebar-item">
+        <a href="#" class="sidebar-link active" data-page="home">
+          <span class="sidebar-icon">🏠</span>
+          <span class="sidebar-label">Dashboard</span>
+        </a>
+      </li>
+      <li class="sidebar-item">
+        <a href="#" class="sidebar-link" data-page="resources">
+          <span class="sidebar-icon">📚</span>
+          <span class="sidebar-label">Resources</span>
+        </a>
+      </li>
+      <li class="sidebar-item">
+        <a href="#" class="sidebar-link" data-page="mock-tests">
+          <span class="sidebar-icon">✏️</span>
+          <span class="sidebar-label">Mock Tests</span>
+        </a>
+      </li>
+      <li class="sidebar-item">
+        <a href="#" class="sidebar-link" data-page="past-papers">
+          <span class="sidebar-icon">📄</span>
+          <span class="sidebar-label">Past Papers</span>
+        </a>
+      </li>
+      <li class="sidebar-item">
+        <a href="#" class="sidebar-link" data-page="premium">
+          <span class="sidebar-icon">⭐</span>
+          <span class="sidebar-label">Premium</span>
+        </a>
+      </li>
+      <li class="sidebar-item">
+        <a href="#" class="sidebar-link" data-page="profile">
+          <span class="sidebar-icon">👤</span>
+          <span class="sidebar-label">Profile</span>
+        </a>
+      </li>
+      <li class="sidebar-item">
+        <a href="#" class="sidebar-link" data-page="feedback">
+          <span class="sidebar-icon">💬</span>
+          <span class="sidebar-label">Feedback</span>
+        </a>
+      </li>
+      <li class="sidebar-item" style="margin-top: 2rem; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 1rem;">
+        <a href="#" class="sidebar-link" id="logout-btn">
+          <span class="sidebar-icon">🚪</span>
+          <span class="sidebar-label">Logout</span>
+        </a>
+      </li>
+    </nav>
+  </aside>
+
+  <!-- Header -->
+  <header class="header" id="header">
+    <div class="header-left">
+      <button class="hamburger" id="hamburger-btn">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <h1 class="header-title" id="page-title">Dashboard</h1>
+    </div>
+    <div class="header-right">
+      <button class="notification-btn" id="notification-btn">
+        🔔
+        <span class="notification-badge" id="notification-badge" style="display: none;"></span>
+      </button>
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300adef'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3C/svg%3E" alt="Profile" class="profile-img" id="profile-img">
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-container" id="main-container">
+    <div class="page-content" id="page-content">
+      <!-- Home Page -->
+      <div id="page-home" class="page-section" style="display: none;">
+        <div class="glass-card" style="margin-bottom: 2rem;">
+          <div class="flex items-center gap-2" style="margin-bottom: 1rem;">
+            <span style="font-size: 2rem;">👋</span>
+            <h2 style="font-size: 1.8rem; color: #0a1628; margin: 0;">
+              Welcome back, <span id="user-name">User</span>!
+            </h2>
+          </div>
+          <p style="color: rgba(10,22,40,0.6); margin: 0.5rem 0; font-size: 1rem;">
+            Target: <span id="user-university" style="font-weight: 600; color: #0076e5;">Loading...</span> | 
+            <span id="premium-badge" style="padding: 0.2rem 0.8rem; background: rgba(0,173,239,0.1); border-radius: 0.5rem; font-weight: 600; color: #0076e5;">Free</span>
+          </p>
+        </div>
+
+        <div class="grid-4">
+          <div class="stat-card glass-card">
+            <div class="stat-value" id="mock-count">0</div>
+            <div class="stat-label">Mock Tests Attempted</div>
+          </div>
+          <div class="stat-card glass-card">
+            <div class="stat-value" id="papers-count">0</div>
+            <div class="stat-label">Past Papers Available</div>
+          </div>
+          <div class="stat-card glass-card">
+            <div class="stat-value" id="resources-count">0</div>
+            <div class="stat-label">Resources</div>
+          </div>
+          <div class="stat-card glass-card">
+            <div class="stat-value" id="notification-count">0</div>
+            <div class="stat-label">Notifications</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resources Page -->
+      <div id="page-resources" class="page-section" style="display: none;">
+        <div class="glass-card" style="margin-bottom: 2rem;">
+          <h2 style="color: #0a1628; margin-bottom: 1rem;">Resource Bank</h2>
+          
+          <div style="margin-bottom: 1.5rem;">
+            <label class="form-label">Select University</label>
+            <div class="tabs-container" id="university-tabs">
+              <!-- Universities will be inserted here -->
+            </div>
+          </div>
+
+          <div class="filters-section">
+            <div class="filter-input">
+              <input type="text" id="search-resources" class="form-input" placeholder="Search resources...">
+            </div>
+            <div class="filter-input">
+              <select id="filter-type" class="form-select">
+                <option value="">All Content Types</option>
+                <option value="Video">Videos</option>
+                <option value="PDF">PDFs</option>
+                <option value="Link">Links</option>
+              </select>
+            </div>
+            <div class="filter-input">
+              <select id="filter-test" class="form-select">
+                <option value="">All Test Types</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="resources-container" class="grid-3">
+          <!-- Resources will be inserted here -->
+        </div>
+      </div>
+
+      <!-- Mock Tests Page -->
+      <div id="page-mock-tests" class="page-section" style="display: none;">
+        <div class="glass-card" style="margin-bottom: 2rem;">
+          <h2 style="color: #0a1628; margin-bottom: 1rem;">Mock Tests</h2>
+          <div class="filters-section">
+            <div class="filter-input">
+              <select id="filter-test-university" class="form-select">
+                <option value="">All Universities</option>
+              </select>
+            </div>
+            <div class="filter-input">
+              <select id="filter-test-type" class="form-select">
+                <option value="">All Test Types</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div id="mock-tests-container" class="grid-3">
+          <!-- Mock tests will be inserted here -->
+        </div>
+      </div>
+
+      <!-- Past Papers Page -->
+      <div id="page-past-papers" class="page-section" style="display: none;">
+        <div id="universities-view">
+          <h2 style="color: #0a1628; margin-bottom: 2rem;">Select University</h2>
+          <div id="universities-container" class="grid-3">
+            <!-- University cards will be inserted here -->
+          </div>
+        </div>
+
+        <div id="papers-view" style="display: none;">
+          <button class="btn btn-secondary" id="back-to-universities" style="margin-bottom: 1.5rem;">← Back</button>
+          <h2 style="color: #0a1628; margin-bottom: 2rem;" id="papers-title">Past Papers</h2>
+          <div id="papers-container" class="grid-3">
+            <!-- Papers will be inserted here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Premium Subscription Page -->
+      <div id="page-premium" class="page-section" style="display: none;">
+        <div style="text-align: center; margin-bottom: 3rem;">
+          <h1 style="color: #0a1628; font-size: 2.5rem; margin-bottom: 0.5rem;">Premium Membership</h1>
+          <p style="color: rgba(10,22,40,0.6); font-size: 1.1rem;">Unlock unlimited access to all resources</p>
+        </div>
+
+        <div class="grid-2" style="margin-bottom: 3rem;">
+          <div class="glass-card" style="border: 2px solid #0076e5; position: relative;">
+            <div style="background: var(--primary-gradient); color: white; padding: 0.5rem 1rem; border-radius: 0.5rem; display: inline-block; margin-bottom: 1rem; font-weight: 700; font-size: 0.85rem;">ONE TIME PAYMENT</div>
+            <h3 style="font-size: 1.8rem; color: #0a1628; margin: 1rem 0;">Lifetime Premium</h3>
+            <div style="font-size: 3rem; font-weight: 800; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 1.5rem 0;">Rs. 750</div>
+            
+            <ul style="list-style: none; margin: 2rem 0; text-align: left;">
+              <li style="padding: 0.75rem 0; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.2rem;">✅</span>
+                <span>Premium Past Papers</span>
+              </li>
+              <li style="padding: 0.75rem 0; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.2rem;">✅</span>
+                <span>Premium Resources</span>
+              </li>
+              <li style="padding: 0.75rem 0; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.2rem;">✅</span>
+                <span>Premium Mock Tests</span>
+              </li>
+              <li style="padding: 0.75rem 0; border-bottom: 1px solid rgba(0,0,0,0.05); display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.2rem;">✅</span>
+                <span>Full Access</span>
+              </li>
+              <li style="padding: 0.75rem 0; display: flex; align-items: center; gap: 0.75rem;">
+                <span style="font-size: 1.2rem;">✅</span>
+                <span>Unlimited Usage</span>
+              </li>
+            </ul>
+
+            <button class="btn btn-primary w-full" id="initiate-payment-btn" style="margin-bottom: 1rem;">Proceed to Payment</button>
+          </div>
+
+          <div class="glass-card">
+            <h3 style="color: #0a1628; font-size: 1.5rem; margin-bottom: 1.5rem;">Payment Instructions</h3>
+            
+            <div style="margin-bottom: 1.5rem;">
+              <p style="color: rgba(10,22,40,0.6); margin-bottom: 0.5rem; font-weight: 600;">Send payment via JazzCash:</p>
+              <div style="background: rgba(0,173,239,0.1); padding: 1rem; border-radius: 0.8rem; margin-bottom: 0.5rem;">
+                <div style="font-family: monospace; font-size: 1.1rem; font-weight: 700; color: #0a1628; margin-bottom: 0.5rem;">03xxxxx xxxx</div>
+                <small style="color: rgba(10,22,40,0.6);">Account Title: FUNGEP Services</small>
+              </div>
+              <button class="btn btn-secondary w-full" id="copy-number-btn">📋 Copy Number</button>
+            </div>
+
+            <div style="border-top: 1px solid rgba(0,0,0,0.1); padding-top: 1.5rem;">
+              <h4 style="color: #0a1628; margin-bottom: 1rem;">Upload Receipt</h4>
+              <form id="payment-form">
+                <div class="form-group">
+                  <label class="form-label">Full Name</label>
+                  <input type="text" id="payment-name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">WhatsApp Number</label>
+                  <input type="tel" id="payment-whatsapp" class="form-input" placeholder="+92..." required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Transaction ID</label>
+                  <input type="text" id="payment-txid" class="form-input" required>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Receipt Image</label>
+                  <input type="file" id="payment-receipt" class="form-input" accept="image/*" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-full">Submit Payment Request</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications Page -->
+      <div id="page-notifications" class="page-section" style="display: none;">
+        <div class="glass-card" style="margin-bottom: 2rem;">
+          <h2 style="color: #0a1628; margin-bottom: 1rem;">Notifications</h2>
+          <div id="notifications-container">
+            <!-- Notifications will be inserted here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Page -->
+      <div id="page-profile" class="page-section" style="display: none;">
+        <div class="grid-2">
+          <div class="glass-card">
+            <h3 style="color: #0a1628; margin-bottom: 1.5rem;">Profile Information</h3>
+            
+            <div style="text-align: center; margin-bottom: 2rem;">
+              <img id="profile-large-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300adef'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3C/svg%3E" alt="Profile" style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid rgba(0,173,239,0.3); object-fit: cover;">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input type="text" id="profile-name" class="form-input" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" id="profile-email" class="form-input" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target University</label>
+              <input type="text" id="profile-university" class="form-input" readonly>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Target Test</label>
+              <input type="text" id="profile-test" class="form-input" readonly>
+            </div>
+          </div>
+
+          <div class="glass-card">
+            <h3 style="color: #0a1628; margin-bottom: 1.5rem;">Update Profile Picture</h3>
+            <form id="profile-image-form">
+              <div class="form-group">
+                <label class="form-label">Upload New Picture</label>
+                <input type="file" id="profile-image-input" class="form-input" accept="image/*">
+              </div>
+              <button type="submit" class="btn btn-primary w-full">Upload Picture</button>
+            </form>
+
+            <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(0,0,0,0.1);">
+              <h4 style="color: #0a1628; margin-bottom: 1rem;">Account Status</h4>
+              <div style="background: rgba(0,173,239,0.1); padding: 1rem; border-radius: 0.8rem; text-align: center;">
+                <p style="color: #0076e5; font-weight: 700; margin: 0;" id="account-status">Free Account</p>
+                <small style="color: rgba(10,22,40,0.6);">Upgrade to Premium for unlimited access</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Page -->
+      <div id="page-feedback" class="page-section" style="display: none;">
+        <div class="glass-card" style="max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #0a1628; margin-bottom: 1.5rem;">Send Feedback</h2>
+
+          <form id="feedback-form">
+            <div class="form-group">
+              <label class="form-label">Feedback Category</label>
+              <select id="feedback-category" class="form-select" required>
+                <option value="">Select Category</option>
+                <option value="Bug Report">Bug Report</option>
+                <option value="Feature Request">Feature Request</option>
+                <option value="General Feedback">General Feedback</option>
+                <option value="Complaint">Complaint</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Subject</label>
+              <input type="text" id="feedback-subject" class="form-input" placeholder="Brief subject" required>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Message</label>
+              <textarea id="feedback-message" class="form-textarea" placeholder="Please describe your feedback in detail..." required></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-full">Submit Feedback</button>
+          </form>
+
+          <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(0,0,0,0.1);">
+            <h3 style="color: #0a1628; margin-bottom: 1rem;">Previous Feedback</h3>
+            <div id="feedback-history">
+              <!-- Previous feedback will be listed here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modals -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-content" id="modal-content">
+      <!-- Modal content will be inserted here -->
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Appwrite SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/appwrite/+esm"></script>
+
+  <!-- Dashboard Script -->
+  <script src="assets/js/dashboard.js"></script>
+</body>
+</html>
