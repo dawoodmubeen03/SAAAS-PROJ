@@ -27,6 +27,7 @@ let currentSubscription = null;
 let isPremium = false;
 let currentUni = 'NUST';
 let currentFilter = 'All';
+let selectedProfileImageFile = null;
 
 // Collections mapping based on prompt
 const COLS = {
@@ -39,6 +40,15 @@ const COLS = {
   mockTests: 'mock-tests' // Assuming mock tests collection id is 'mock-tests'
 };
 
+const BUCKETS = {
+  mockJsons: 'mock-jsons',
+  generatedResults: 'generated-results',
+  resultTemplates: 'result-templates',
+  profileImages: 'profile-images',
+  paymentReceipts: 'payment-receipts',
+  pastPapers: 'past-papers'
+};
+
 // --- Initialization ---
 async function init() {
   try {
@@ -47,6 +57,9 @@ async function init() {
     
     // Check Subscription
     await checkSubscription();
+
+    // Load profile preferences
+    loadProfileFromPrefs();
     
     // Load initial data
     loadResources();
@@ -91,7 +104,7 @@ function setupEventListeners() {
       document.querySelectorAll('.uni-tab').forEach(t => t.classList.remove('active'));
       e.target.classList.add('active');
       currentUni = e.target.getAttribute('data-uni');
-      document.getElementById('selected-university-text').textContent = currentUni + ' University';
+      updateUniversityDisplay(currentUni);
       loadResources();
     });
   });
@@ -121,7 +134,7 @@ function setupEventListeners() {
       const file = fileInput.files[0];
 
       // Upload receipt
-      const uploadedFile = await storage.createFile('payment-receipts', ID.unique(), file);
+      const uploadedFile = await storage.createFile(BUCKETS.paymentReceipts, ID.unique(), file);
 
       // Create record
       await databases.createDocument(CONFIG.databaseId, COLS.paymentReceipts, ID.unique(), {
@@ -173,13 +186,22 @@ function setupEventListeners() {
       lucide.createIcons();
     }
   });
+
+  // Profile
+  document.getElementById('profile-image-file').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    selectedProfileImageFile = file;
+  });
+
+  document.getElementById('profile-form').addEventListener('submit', saveProfile);
 }
 
 // --- Data Fetching ---
 
 async function loadResources() {
   const container = document.getElementById('resources-grid');
-  container.innerHTML = '<p>Loading resources for ' + currentUni + '...</p>';
+  container.textContent = `Loading resources for ${currentUni}...`;
   
   try {
     const queries = [Query.equal('university', currentUni)];
@@ -192,9 +214,12 @@ async function loadResources() {
     // Update stats
     document.getElementById('stat-resources').textContent = res.total;
 
-    container.innerHTML = '';
+    container.replaceChildren();
     if (res.documents.length === 0) {
-      container.innerHTML = '<p style="color:var(--color-text-muted);">No resources found for this filter.</p>';
+      const emptyText = document.createElement('p');
+      emptyText.style.color = 'var(--color-text-muted)';
+      emptyText.textContent = 'No resources found for this filter.';
+      container.appendChild(emptyText);
       return;
     }
 
@@ -207,12 +232,42 @@ async function loadResources() {
       if(item.resourceType === 'PDF') icon = 'file-text';
       if(item.resourceType === 'Notes') icon = 'book';
 
-      card.innerHTML = `
-        <div class="cc-icon"><i data-lucide="${icon}"></i></div>
-        <h4 style="margin-bottom:8px;">${item.title || 'Untitled Resource'}</h4>
-        <p style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:16px; flex:1;">${item.description || 'No description available.'}</p>
-        <button class="btn-primary" style="padding: 8px 16px; font-size: 0.85rem;" onclick="window.open('${item.url}', '_blank')">Access Resource</button>
-      `;
+      const iconWrap = document.createElement('div');
+      iconWrap.className = 'cc-icon';
+      const iconEl = document.createElement('i');
+      iconEl.setAttribute('data-lucide', icon);
+      iconWrap.appendChild(iconEl);
+
+      const title = document.createElement('h4');
+      title.style.marginBottom = '8px';
+      title.textContent = item.title || 'Untitled Resource';
+
+      const description = document.createElement('p');
+      description.style.fontSize = '0.85rem';
+      description.style.color = 'var(--color-text-muted)';
+      description.style.marginBottom = '16px';
+      description.style.flex = '1';
+      description.textContent = item.description || 'No description available.';
+
+      const accessBtn = document.createElement('button');
+      accessBtn.className = 'btn-primary';
+      accessBtn.style.padding = '8px 16px';
+      accessBtn.style.fontSize = '0.85rem';
+      accessBtn.textContent = 'Access Resource';
+      accessBtn.addEventListener('click', () => {
+        const resourceUrl = typeof item.url === 'string' ? item.url.trim() : '';
+        try {
+          const parsedUrl = new URL(resourceUrl);
+          if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+            throw new Error('Invalid protocol');
+          }
+          window.open(resourceUrl, '_blank', 'noopener');
+        } catch {
+          alert('Invalid resource URL.');
+        }
+      });
+
+      card.append(iconWrap, title, description, accessBtn);
       container.appendChild(card);
     });
     lucide.createIcons();
@@ -305,12 +360,88 @@ async function openPdfPreview(fileId, premiumOnly) {
   } else {
     lock.style.display = 'none';
     try {
-      const url = storage.getFileView('past-papers', fileId);
+      const url = storage.getFileView(BUCKETS.pastPapers, fileId);
       iframe.src = url.href;
     } catch (e) {
       console.error(e);
       iframe.src = '';
       alert('Could not load PDF');
+    }
+
+    function loadProfileFromPrefs() {
+      const prefs = currentUser?.prefs || {};
+
+      if (prefs.targetUniversity) {
+        currentUni = prefs.targetUniversity;
+        updateUniversityDisplay(currentUni);
+      }
+
+      document.getElementById('profile-target-uni').value = prefs.targetUniversity || 'NUST';
+      document.getElementById('profile-target-test').value = prefs.targetTest || '';
+      document.getElementById('profile-batch').value = prefs.batch || '';
+
+      if (prefs.profileImageFileId) {
+        try {
+          const profileImageUrl = storage.getFileView(BUCKETS.profileImages, prefs.profileImageFileId);
+          document.getElementById('profile-image-preview').src = profileImageUrl.href;
+        } catch (error) {
+          console.error('Failed to load profile image', error);
+        }
+
+        function updateUniversityDisplay(uni) {
+          document.getElementById('selected-university-text').textContent = uni + ' University';
+          document.querySelectorAll('.uni-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.getAttribute('data-uni') === uni);
+          });
+        }
+      }
+    }
+
+    async function saveProfile(e) {
+      e.preventDefault();
+      const btn = document.getElementById('save-profile-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<i data-lucide="loader"></i> Saving...';
+      lucide.createIcons();
+
+      try {
+        const targetUniversity = document.getElementById('profile-target-uni').value;
+        const targetTest = document.getElementById('profile-target-test').value.trim();
+        const batch = document.getElementById('profile-batch').value.trim();
+        let profileImageFileId = currentUser?.prefs?.profileImageFileId || '';
+
+        if (selectedProfileImageFile) {
+          const uploadedImage = await storage.createFile(BUCKETS.profileImages, ID.unique(), selectedProfileImageFile);
+          profileImageFileId = uploadedImage.$id;
+          const uploadedImageUrl = storage.getFileView(BUCKETS.profileImages, profileImageFileId);
+          document.getElementById('profile-image-preview').src = uploadedImageUrl.href;
+        }
+
+        const updatedPrefs = {
+          ...(currentUser?.prefs || {}),
+          targetUniversity,
+          targetTest,
+          batch,
+          profileImageFileId
+        };
+
+        await account.updatePrefs(updatedPrefs);
+        currentUser = await account.get();
+        selectedProfileImageFile = null;
+
+        currentUni = targetUniversity;
+        updateUniversityDisplay(currentUni);
+
+        loadResources();
+        alert('Profile updated successfully!');
+      } catch (error) {
+        console.error(error);
+        alert('Failed to save profile. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="save"></i> Save Profile';
+        lucide.createIcons();
+      }
     }
   }
 }
