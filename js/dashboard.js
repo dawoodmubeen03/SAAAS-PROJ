@@ -104,7 +104,7 @@ function setupEventListeners() {
       document.querySelectorAll('.uni-tab').forEach(t => t.classList.remove('active'));
       e.target.classList.add('active');
       currentUni = e.target.getAttribute('data-uni');
-      document.getElementById('selected-university-text').textContent = currentUni + ' University';
+      updateUniversityDisplay(currentUni);
       loadResources();
     });
   });
@@ -192,7 +192,6 @@ function setupEventListeners() {
     const file = e.target.files[0];
     if (!file) return;
     selectedProfileImageFile = file;
-    document.getElementById('profile-image-preview').src = URL.createObjectURL(file);
   });
 
   document.getElementById('profile-form').addEventListener('submit', saveProfile);
@@ -235,7 +234,9 @@ async function loadResources() {
 
       const iconWrap = document.createElement('div');
       iconWrap.className = 'cc-icon';
-      iconWrap.innerHTML = `<i data-lucide="${icon}"></i>`;
+      const iconEl = document.createElement('i');
+      iconEl.setAttribute('data-lucide', icon);
+      iconWrap.appendChild(iconEl);
 
       const title = document.createElement('h4');
       title.style.marginBottom = '8px';
@@ -255,9 +256,13 @@ async function loadResources() {
       accessBtn.textContent = 'Access Resource';
       accessBtn.addEventListener('click', () => {
         const resourceUrl = typeof item.url === 'string' ? item.url.trim() : '';
-        if (/^https?:\/\//i.test(resourceUrl)) {
+        try {
+          const parsedUrl = new URL(resourceUrl);
+          if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+            throw new Error('Invalid protocol');
+          }
           window.open(resourceUrl, '_blank', 'noopener');
-        } else {
+        } catch {
           alert('Invalid resource URL.');
         }
       });
@@ -368,10 +373,7 @@ async function openPdfPreview(fileId, premiumOnly) {
 
       if (prefs.targetUniversity) {
         currentUni = prefs.targetUniversity;
-        document.getElementById('selected-university-text').textContent = currentUni + ' University';
-        document.querySelectorAll('.uni-tab').forEach(tab => {
-          tab.classList.toggle('active', tab.getAttribute('data-uni') === currentUni);
-        });
+        updateUniversityDisplay(currentUni);
       }
 
       document.getElementById('profile-target-uni').value = prefs.targetUniversity || 'NUST';
@@ -384,6 +386,13 @@ async function openPdfPreview(fileId, premiumOnly) {
           document.getElementById('profile-image-preview').src = profileImageUrl.href;
         } catch (error) {
           console.error('Failed to load profile image', error);
+        }
+
+        function updateUniversityDisplay(uni) {
+          document.getElementById('selected-university-text').textContent = uni + ' University';
+          document.querySelectorAll('.uni-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.getAttribute('data-uni') === uni);
+          });
         }
       }
     }
@@ -404,6 +413,8 @@ async function openPdfPreview(fileId, premiumOnly) {
         if (selectedProfileImageFile) {
           const uploadedImage = await storage.createFile(BUCKETS.profileImages, ID.unique(), selectedProfileImageFile);
           profileImageFileId = uploadedImage.$id;
+          const uploadedImageUrl = storage.getFileView(BUCKETS.profileImages, profileImageFileId);
+          document.getElementById('profile-image-preview').src = uploadedImageUrl.href;
         }
 
         const updatedPrefs = {
@@ -419,10 +430,7 @@ async function openPdfPreview(fileId, premiumOnly) {
         selectedProfileImageFile = null;
 
         currentUni = targetUniversity;
-        document.getElementById('selected-university-text').textContent = currentUni + ' University';
-        document.querySelectorAll('.uni-tab').forEach(tab => {
-          tab.classList.toggle('active', tab.getAttribute('data-uni') === currentUni);
-        });
+        updateUniversityDisplay(currentUni);
 
         loadResources();
         alert('Profile updated successfully!');
