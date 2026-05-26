@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FUNGEP | University Aggregate Calculator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="/firebase-auth.js" defer></script>
+  <style>
+    :root {
+      --blue-50: #eff6ff;
+      --blue-100: #dbeafe;
+      --blue-500: #3b82f6;
+      --blue-600: #2563eb;
+      --blue-700: #1d4ed8;
+      --slate-50: #f8fafc;
+      --slate-100: #f1f5f9;
+      --slate-200: #e2e8f0;
+      --slate-400: #94a3b8;
+      --slate-500: #64748b;
+      --slate-700: #334155;
+      --slate-900: #0f172a;
+      --shadow: 0 24px 70px rgba(15, 23, 42, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      color: var(--slate-900);
+      background: #e0f2fe;
+      overflow-x: hidden;
+    }
+
+    .page-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background:
+        radial-gradient(circle at 12% 12%, rgba(255,255,255,0.64), transparent 28rem),
+        radial-gradient(circle at 88% 8%, rgba(191,219,254,0.8), transparent 22rem),
+        linear-gradient(135deg, #00adef 0%, #0076e5 100%);
+    }
+
+    .page-bg::after {
+      content: "";
+      position: absolute;
+      inset: auto -12rem -22rem auto;
+      width: 44rem;
+      height: 44rem;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.16);
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; cursor: pointer; }
+
+    .shell {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+    }
+
+    /* Navbar Styling */
+    .top-nav {
+      position: sticky;
+      top: 16px;
+      z-index: 50;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 16px;
+      padding: 12px 24px;
+      border: 1px solid rgba(255,255,255,0.72);
+      border-radius: 24px;
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 16px 45px rgba(15,23,42,0.12);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.6rem;
+      font-weight: 900;
+      letter-spacing: -0.04em;
+      color: var(--blue-600);
+      z-index: 60;
+    }
+
+    .brand img {
+      width: 38px;
+      height: 38px;
+      border-radius: 14px;
+      object-fit: cover;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-links a, .link-button {
+      border: 0;
+      background: transparent;
+      color: var(--slate-500);
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 800;
+      transition: all 0.2s ease;
+      text-decoration: none !important;
+    }
+
+    .nav-links a:hover, .link-button:hover {
+      color: var(--blue-600);
+      background: var(--blue-50);
+    }
+
+    .menu-toggle { display: none; }
+    .hamburger {
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+      width: 30px;
+      background: transparent;
+      border: none;
+      z-index: 60;
+    }
+
+    .hamburger span {
+      display: block;
+      height: 3px;
+      width: 100%;
+      background: var(--slate-700);
+      border-radius: 9px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 48px;
+      border: 0;
+      border-radius: 16px;
+      padding: 0 24px;
+      font-weight: 900;
+      font-size: 1.05rem;
+      color: white;
+      background: var(--blue-600);
+      box-shadow: 0 14px 28px rgba(37,99,235,0.25);
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      background: var(--blue-700);
+    }
+
+    /* Calculator Container Styling */
+    .calc-container {
+      max-width: 680px;
+      margin: 54px auto 80px;
+    }
+
+    .calc-card {
+      border: 1px solid rgba(255,255,255,0.75);
+      border-radius: 36px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 44px 48px;
+      box-shadow: var(--shadow);
+    }
+
+    .calc-card h1 {
+      text-align: center;
+      font-size: 2.35rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.03em;
+      margin-bottom: 36px;
+      margin-top: 0;
+    }
+
+    .form-row {
+      margin-bottom: 24px;
+    }
+
+    .form-group-dual {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      margin-bottom: 28px;
+    }
+
+    label {
+      display: block;
+      color: var(--slate-500);
+      font-size: 0.72rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    input, select {
+      width: 100%;
+      border: 2px solid var(--slate-100);
+      border-radius: 16px;
+      padding: 16px 18px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--slate-900);
+      background: #fdfdfd;
+      outline: none;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--blue-500);
+      background: white;
+    }
+
+    input::placeholder {
+      color: var(--slate-400);
+      font-weight: 500;
+    }
+
+    /* Inner Row Panel for Entry Test Block */
+    .entry-test-panel {
+      background: #f8fafc;
+      border: 1px solid var(--slate-200);
+      border-radius: 24px;
+      padding: 24px 28px;
+      margin-top: 32px;
+      margin-bottom: 32px;
+    }
+
+    .entry-test-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 32px;
+    }
+
+    .entry-test-panel label {
+      color: var(--blue-600);
+    }
+
+    .entry-test-panel .label-max {
+      color: var(--slate-500);
+    }
+
+    /* Result Banner Block */
+    .result {
+      display: none;
+      margin-top: 28px;
+      padding: 24px;
+      border-radius: 24px;
+      text-align: center;
+      color: white;
+      background: linear-gradient(135deg, var(--blue-600), #1e40af);
+      animation: slideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .result.visible { display: block; }
+    .result p { margin: 0 0 4px; font-weight: 600; opacity: 0.9; font-size: 1rem; }
+    .result span { display: block; font-size: 3.8rem; font-weight: 900; letter-spacing: -0.02em; }
+
+    @keyframes slideIn { 
+      from { opacity: 0; transform: translateY(-16px); } 
+      to { opacity: 1; transform: translateY(0); } 
+    }
+
+    footer { margin-top: auto; padding: 30px 0; color: rgba(255,255,255,0.72); border-top: 1px solid rgba(255,255,255,0.22); }
+    .footer-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 18px; }
+    .footer-links { display: flex; gap: 16px; font-weight: 800; }
+
+    @media (max-width: 860px) {
+      .hamburger { display: flex; }
+      .nav-links {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        width: 280px;
+        height: 100vh;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: -10px 0 40px rgba(15, 23, 42, 0.15);
+        backdrop-filter: blur(20px);
+        flex-direction: column;
+        padding: 90px 24px 40px;
+        gap: 16px;
+        transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 55;
+      }
+      .menu-toggle:checked ~ .nav-links { right: 0; }
+      .menu-toggle:checked ~ .hamburger span:nth-child(1) { transform: translateY(9px) rotate(45deg); }
+      .menu-toggle:checked ~ .hamburger span:nth-child(2) { opacity: 0; }
+      .menu-toggle:checked ~ .hamburger span:nth-child(3) { transform: translateY(-9px) rotate(-45deg); }
+
+      .nav-links a, .link-button { width: 100%; text-align: left; }
+      .nav-links .btn { width: 100%; margin-top: 12px; }
+      
+      .calc-card { padding: 32px 24px; border-radius: 28px; }
+      .form-group-dual, .entry-test-grid { grid-template-columns: 1fr; gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-bg" aria-hidden="true"></div>
+
+  <nav class="top-nav shell">
+    <a class="brand" href="/">
+      <img src="/funglogo.jpeg" alt="FUNGEP logo">
+      <span>FUNGEP</span>
+    </a>
+    
+    <input type="checkbox" id="menu-toggle" class="menu-toggle">
+    <label for="menu-toggle" class="hamburger">
+      <span></span>
+      <span></span>
+      <span></span>
+    </label>
+
+    <div class="nav-links">
+      <a href="/#tools" onclick="closeMenu()">Tools</a>
+      <a href="/calculator.html" onclick="closeMenu()">Calculator</a>
+      <a href="/pricing.html" onclick="closeMenu()">Pricing</a>
+      <button class="link-button" onclick="handleStudyPlannerClick(); closeMenu()">Study Planner</button>
+      <a href="/#about" onclick="closeMenu()">About</a>
+      <a href="/#contact" onclick="closeMenu()">Contact</a>
+      <button id="auth-action" class="btn" onclick="closeMenu()">Sign In</button>
+    </div>
+  </nav>
+
+  <main class="shell calc-container">
+    <div class="calc-card">
+      <h1>Aggregate Calculator</h1>
+      
+      <form id="aggregate-form">
+        <div class="form-row">
+          <label for="calc-preset">Select University</label>
+          <select id="calc-preset">
+            <option value="nust">NUST</option>
+            <option value="ecat">UET / ECAT</option>
+            <option value="fast">FAST</option>
+            <option value="giki">GIKI</option>
+            <option value="comsats">COMSATS</option>
+            <option value="itu">ITU</option>
+            <option value="pu">Punjab University (PU)</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <label for="calc-discipline">Select Discipline</label>
+          <select id="calc-discipline">
+            <option value="engineering">Engineering</option>
+            <option value="computing">Computing</option>
+            <option value="business">Business</option>
+          </select>
+        </div>
+
+        <div class="form-group-dual">
+          <div>
+            <label for="mat-obt">Matric / O-Levels</label>
+            <input type="number" id="mat-obt" placeholder="Marks Obtained" step="any" required>
+          </div>
+          <div>
+            <label for="mat-tot">Total Marks</label>
+            <input type="number" id="mat-tot" value="1100" step="any" required>
+          </div>
+        </div>
+
+        <div class="form-group-dual">
+          <div>
+            <label for="fsc-obt">FSc / A-Levels</label>
+            <input type="number" id="fsc-obt" placeholder="Marks Obtained" step="any" required>
+          </div>
+          <div>
+            <label for="fsc-tot">Total Marks</label>
+            <input type="number" id="fsc-tot" value="1200" step="any" required>
+          </div>
+        </div>
+
+        <div class="entry-test-panel">
+          <div class="entry-test-grid">
+            <div>
+              <label for="exam-obt">Entry Test</label>
+              <input type="number" id="exam-obt" placeholder="OBTAINED SCORE" step="any" required>
+            </div>
+            <div>
+              <label for="exam-tot" class="label-max">Max Possible</label>
+              <input type="number" id="exam-tot" value="200" step="any" required>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn" type="submit" style="width: 100%;">Generate Aggregate</button>
+
+        <div class="result" id="calc-result" aria-live="polite">
+          <p>Estimated Entry Aggregate</p>
+          <span id="result-value">0.00%</span>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <footer>
+    <div class="shell footer-row">
+      <p>Copyright 2026 FUNGEP. All rights reserved.</p>
+      <div class="footer-links">
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const CALCULATOR_RULES = {
+      nust: { engineering: { vm: 10, vf: 15, ve: 75, max: 200 }, computing: { vm: 10, vf: 25, ve: 65, max: 200 }, business: { vm: 15, vf: 25, ve: 60, max: 200 } },
+      ecat: { engineering: { vm: 17, vf: 50, ve: 33, max: 400 }, computing: { vm: 17, vf: 33, ve: 50, max: 400 }, business: { vm: 20, vf: 50, ve: 30, max: 400 } },
+      fast: { engineering: { vm: 10, vf: 40, ve: 50, max: 100 }, computing: { vm: 10, vf: 40, ve: 50, max: 100 }, business: { vm: 15, vf: 45, ve: 40, max: 100 } },
+      giki: { engineering: { vm: 5, vf: 10, ve: 85, max: 200 }, computing: { vm: 5, vf: 10, ve: 85, max: 200 }, business: { vm: 10, vf: 20, ve: 70, max: 200 } },
+      comsats: { engineering: { vm: 10, vf: 40, ve: 50, max: 100 }, computing: { vm: 10, vf: 40, ve: 50, max: 100 }, business: { vm: 15, vf: 45, ve: 40, max: 100 } },
+      itu: { engineering: { vm: 15, vf: 35, ve: 50, max: 100 }, computing: { vm: 15, vf: 35, ve: 50, max: 100 }, business: { vm: 20, vf: 40, ve: 40, max: 100 } },
+      pu: { engineering: { vm: 25, vf: 50, ve: 25, max: 100 }, computing: { vm: 25, vf: 50, ve: 25, max: 100 }, business: { vm: 30, vf: 50, ve: 20, max: 100 } }
+    };
+
+    function activeRule() {
+      const p = document.getElementById("calc-preset").value;
+      const d = document.getElementById("calc-discipline").value;
+      return CALCULATOR_RULES[p]?.[d] || CALCULATOR_RULES[p].engineering;
+    }
+
+    function syncExamMaximum() {
+      const rule = activeRule();
+      const input = document.getElementById("exam-tot");
+      input.value = rule.max;
+      document.getElementById("calc-result").classList.remove("visible");
+    }
+
+    function numberValue(id, fallback) {
+      const v = parseFloat(document.getElementById(id).value);
+      return Number.isFinite(v) ? v : fallback;
+    }
+
+    document.getElementById("aggregate-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const rule = activeRule();
+      const matT = Math.max(numberValue("mat-tot", 1), 1);
+      const fscT = Math.max(numberValue("fsc-tot", 1), 1);
+      const exT = Math.max(numberValue("exam-tot", rule.max), 1);
+      
+      const aggregate = (numberValue("mat-obt", 0) / matT) * rule.vm +
+                        (numberValue("fsc-obt", 0) / fscT) * rule.vf +
+                        (numberValue("exam-obt", 0) / exT) * rule.ve;
+
+      document.getElementById("result-value").textContent = aggregate.toFixed(2) + "%";
+      document.getElementById("calc-result").classList.add("visible");
+    });
+
+    document.getElementById("calc-preset").addEventListener("change", syncExamMaximum);
+    document.getElementById("calc-discipline").addEventListener("change", syncExamMaximum);
+    
+    function closeMenu() { document.getElementById("menu-toggle").checked = false; }
+    function handleStudyPlannerClick() { window.location.href = window.isLoggedIn ? '/study-planner.html' : '/login.html'; }
+    
+    function updateAuthUI(user) {
+      const authBtn = document.getElementById('auth-action');
+      if (user) {
+        authBtn.textContent = 'Dashboard';
+        authBtn.onclick = () => { closeMenu(); window.location.href = '/dashboard.html'; };
+      } else {
+        authBtn.textContent = 'Sign In';
+        authBtn.onclick = () => { closeMenu(); window.location.href = '/login.html'; };
+      }
+    }
+
+    window.addEventListener('firebaseStateReady', (e) => updateAuthUI(e.detail?.user || null));
+    if (window.isLoggedIn && window.currentUser) updateAuthUI(window.currentUser);
+  </script>
+</body>
+</html>
